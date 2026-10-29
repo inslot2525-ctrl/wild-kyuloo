@@ -1,0 +1,26 @@
+# Deploy to Render on every push to main.
+# Render's own auto-deploy doesn't see this repo's pushes (its GitHub app is
+# linked to a teammate's account), so we call the service's deploy hook instead.
+# Setup: Render dashboard > crowd-kit > Settings > Deploy Hook, copy the URL,
+# then add it here as the repository secret RENDER_DEPLOY_HOOK. Never commit it.
+name: Deploy to Render
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render deploy
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::warning::RENDER_DEPLOY_HOOK is not set; skipping deploy."
+            exit 0
+          fi
+          curl -fsS -X POST "$HOOK" > /dev/null
+          echo "Render deploy triggered for ${GITHUB_SHA::7}."

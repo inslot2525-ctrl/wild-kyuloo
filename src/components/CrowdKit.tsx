@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRef, useState } from "react";
-import type { ActMatch } from "@/lib/act";
+import type { ActLookup, ActMatch } from "@/lib/act";
 import { streamPlan } from "@/lib/planStream";
 import { PRESETS } from "@/lib/presets";
 import type { AgentEvent, EventInput, Plan } from "@/lib/types";
@@ -36,6 +36,23 @@ export function CrowdKit() {
     });
   }
 
+  // A photo that arrives after submitting (the lookup was still running on a slow
+  // server) still belongs on the plan's header.
+  function changeAct(a: ActMatch | null) {
+    setAct(a);
+    setSubmitted((s) => (s && !s.act && a?.image && sameAct(s.event.act, a.name) ? { ...s, act: a } : s));
+  }
+
+  async function findPhoto(name: string) {
+    try {
+      const res = await fetch(`/api/act?q=${encodeURIComponent(name)}&type=artist`);
+      const data = (await res.json()) as ActLookup;
+      if (data.match?.image) changeAct(data.match);
+    } catch {
+      // no photo: the initials fallback is fine
+    }
+  }
+
   async function submit() {
     setRunning(true);
     setError(null);
@@ -43,6 +60,7 @@ export function CrowdKit() {
     setPlans({});
     setView("plan");
     setSubmitted({ event: form, act });
+    if (!act) findPhoto(form.act);
     requestAnimationFrame(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
     try {
       // Both at once: the comparison is the point.
@@ -127,7 +145,7 @@ export function CrowdKit() {
             </ul>
             </div>
           </div>
-          <EventForm value={form} onChange={setForm} onSubmit={submit} running={running} act={act} onActChange={setAct} />
+          <EventForm value={form} onChange={setForm} onSubmit={submit} running={running} act={act} onActChange={changeAct} />
         </section>
       </div>
 
@@ -245,3 +263,8 @@ function PlanSkeleton() {
     </div>
   );
 }
+
+const sameAct = (typed: string, found: string) => {
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return norm(typed).includes(norm(found)) || norm(found).includes(norm(typed));
+};

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { gemini, generate, MODEL, SEARCH_MODEL, withRetry } from "./gemini";
 import { SYSTEM } from "./prompt";
 import { geocode, nearby, weather } from "./tools/geo";
+import { wikipediaSearch } from "./tools/wiki";
 import { qlooTools } from "./tools/qloo";
 import { planStaffing, weightsFromAges } from "./tools/staffing";
 import { cleanSchema, type AgentTool } from "./tools/tool";
@@ -50,19 +51,36 @@ function localTool<S extends z.ZodType>(
   };
 }
 
-// Web research through a separate Gemini call with Google Search grounding.
+// After Gemini search fails, skip it for a while and go straight to Wikipedia.
+const SEARCH_COOLDOWN_MS = 10 * 60_000;
+let searchDownUntil = 0;
+
+// Web research through a separate Gemini call with Google Search grounding,
+// falling back to Wikipedia when this key has no free search.
 async function webSearch(query: string, emit: Emit, stats?: AgentStats): Promise<ToolResult> {
-  const res = await withRetry(emit, (signal) =>
-    gemini().models.generateContent({
-      model: SEARCH_MODEL,
-      contents: `Research this for an event planner and answer with concrete facts (numbers, names, dates). Say "unknown" for anything you cannot confirm.\n\n${query}`,
-      config: { tools: [{ googleSearch: {} }], abortSignal: signal },
-    }),
-  );
   if (stats) stats.webSearches++;
-  const chunks = res.candidates?.[0]?.groundingMetadata?.groundingChunks ?? [];
-  const sources = chunks.flatMap((c) => (c.web?.uri ? [{ title: c.web.title ?? "", url: c.web.uri }] : [])).slice(0, 6);
-  return { data: { answer: res.text ?? "", sources }, source: "web", cached: false };
+  let failure: unknown = null;
+  if (Date.now() >= searchDownUntil) {
+    try {
+      const res = await withRetry(emit, (signal) =>
+        gemini().models.generateContent({
+          model: SEARCH_MODEL,
+          contents: `Research this for an event planner and answer with concrete facts (numbers, names, dates). Say "unknown" for anything you cannot confirm.\n\n${query}`,
+          config: { tools: [{ googleSearch: {} }], abortSignal: signal },
+        }),
+      );
+      const chunks = res.candidates?.[0]?.groundingMetadata?.groundingChunks ?? [];
+      const sources = chunks.flatMap((c) => (c.web?.uri ? [{ title: c.web.title ?? "", url: c.web.uri }] : [])).slice(0, 6);
+      return { data: { answer: res.text ?? "", sources }, source: "web", cached: false };
+    } catch (err) {
+      failure = err;
+      searchDownUntil = Date.now() + SEARCH_COOLDOWN_MS;
+      emit({ type: "status", message: "Google search via Gemini is unavailable for this key; using Wikipedia instead" });
+    }
+  }
+  const wiki = await wikipediaSearch(query);
+  if (wiki) return { data: wiki, source: "web", cached: false };
+  throw failure ?? new Error("No web results for this question (Google search unavailable, nothing on Wikipedia)");
 }
 
 // Optional run statistics, filled in as the agent works (used by scripts/eval-agent.ts).
@@ -197,8 +215,13 @@ function tidyPlan(raw: unknown, venue: string): unknown {
     Object.values(o).forEach(fix);
   };
   fix(raw);
-  const plan = raw as { venue?: { name?: unknown } };
+  const plan = raw as { venue?: { name?: unknown }; limitations?: unknown; assumptions?: unknown };
   if (plan?.venue && typeof plan.venue === "object" && !plan.venue.name) plan.venue.name = venue;
+  // Notes written as objects ({ area, note }) instead of plain sentences.
+  for (const key of ["limitations", "assumptions"] as const) {
+    const list = plan?.[key];
+    if (Array.isArray(list)) plan[key] = list.map((x) => (x && typeof x === "object" ? Object.values(x).filter((v) => typeof v === "string").join(": ") : x));
+  }
   return raw;
 }
 

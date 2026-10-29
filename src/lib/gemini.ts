@@ -14,7 +14,8 @@ export const MODELS = unique([
   ...(process.env.GEMINI_FALLBACK_MODELS?.split(",") ?? ["gemini-3-flash-preview", "gemini-2.5-flash", "gemini-3.8-flash"]),
 ]);
 export const MODEL = MODELS[0];
-// Google Search grounding is only free on 2.5 Flash.
+// Google Search grounding is only free on 2.5 Flash, which newer keys can no longer
+// use; web_search then falls back to Wikipedia (src/lib/tools/wiki.ts).
 export const SEARCH_MODEL = process.env.GEMINI_SEARCH_MODEL ?? "gemini-2.5-flash";
 
 const TIMEOUT_MS = Number(process.env.GEMINI_TIMEOUT_MS ?? 75_000);

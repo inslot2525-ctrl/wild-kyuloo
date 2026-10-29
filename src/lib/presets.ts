@@ -10,7 +10,7 @@ export const SAMPLE_EVENT: { name: string; input: EventInput } = {
 export const PRESETS: { name: string; input: EventInput }[] = [
   {
     name: "Hip-hop show in San Francisco",
-    input: { venue: "The Fillmore, San Francisco", act: "Eminem", date: "2026-11-21", startTime: "19:00", durationHours: 4, attendance: 1150, volunteers: 30, budget: "$8,000", foodStalls: 6 },
+    input: { venue: "The Fillmore, San Francisco", act: "Eminem", date: "2026-11-21", startTime: "19:00", durationHours: 4, attendance: 1150, volunteers: 40, budget: "$8,000", foodStalls: 6 },
   },
   {
     name: "Comedy night in Chicago",

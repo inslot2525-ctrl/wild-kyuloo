@@ -33,7 +33,7 @@ The organiser enters the act, venue, date, expected crowd and volunteer count. *
 - **Who's coming:** age and gender compared with a typical audience, what fans over-index on, and how tonight's crowd differs from the venue's usual crowd.
 - **Food & drink:** a stall mix that fits the organiser's slots and real nearby vendors, ranked for this audience.
 - **Sponsors & merch:** brands whose fans are already in the room, each with a ready-to-send pitch.
-- **Volunteer team:** stations and shifts from a fixed formula. Qloo's age profile sets the weights in code, not the model: a younger crowd gets more people on merch, an older crowd more at the info and accessibility desk, and each station note cites the Qloo receipt.
+- **Volunteer team:** stations and shifts from a fixed formula built on published crowd-safety guidance: the Purple Guide for first aid, the Green Guide for entry lanes and stewards, NFPA 101 for crowd managers. Safety stations are filled first when volunteers are short. Qloo's age profile sets the weights in code, not the model: a younger crowd gets more people on merch, an older crowd more at the info and accessibility desk, and each station note cites the Qloo receipt.
 - **To-do list:** every task the plan implies, ready to tick off, with copy-pitch buttons.
 - **Fill the room:** for shows with seats left, the neighbourhoods where this crowd stands out, local places to drop posters, podcasts to pitch, and captions written for this crowd.
 - **Site map:** place the stage, entrances, exits, stalls, first aid and toilets on a real map, draw the standing area, and get live safety checks:
@@ -101,7 +101,7 @@ Taste data is most useful when it decides things that cost money (which vendors,
 
 ## Known limitations
 - Qloo describes **aggregate audience affinities**, not individual attendees; plans say "fans over-index on X", never "attendees will buy X".
-- Safety checks are rules of thumb and support, never replace, a professional safety plan.
+- Safety checks and staffing follow published guidance where it exists and rules of thumb elsewhere; they support, never replace, a professional safety plan.
 - Runs on Gemini's free tier, so a new plan can take 2–3 minutes and Google may use free-tier requests to improve its products; don't enter private data.
 - Qloo coverage varies by act and city; comedy and smaller acts return less.
 

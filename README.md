@@ -11,7 +11,7 @@ It returns a ready-to-use operations plan:
 
 - **Food and drink:** which stalls to have, and named local vendors to invite.
 - **Sponsors and merch:** brands whose fans overlap the crowd, with a pitch for each.
-- **Volunteers:** stations and shifts from a fixed formula, weighted in code by Qloo's age profile.
+- **Volunteers:** stations and shifts from a fixed formula based on published crowd-safety guidance (Purple Guide, Green Guide, NFPA 101), weighted in code by Qloo's age profile.
 - **Vibe:** a pre-show playlist and theme ideas.
 
 - **Site map with safety checks:** crowd density with a crush warning, the time to get everyone out through the exits (and with the widest one blocked), and an AI layout review.
@@ -129,7 +129,7 @@ Browser form ──POST /api/plan?mode=baseline──▶ Gemini, no tools ("With
 
 - Qloo results describe **aggregate audience affinities**. They are not predictions about any individual attendee, and the plan words them that way.
 - Venue facts from web search can be out of date. The plan labels them `web` so the planner can check.
-- The volunteer formula uses rules of thumb for community events. It supports, and never replaces, professional safety staffing.
+- The volunteer formula follows published minimums (Purple Guide, Green Guide, NFPA 101; sources in `src/lib/tools/staffing.ts`) where they exist, and rules of thumb for food, merch, the info desk and bar ID checks. It supports, and never replaces, professional safety staffing.
 - Public OpenStreetMap servers are sometimes overloaded. When they fail, the plan says so instead of guessing.
 
 ## Rules we follow

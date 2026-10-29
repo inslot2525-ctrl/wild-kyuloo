@@ -13,6 +13,7 @@ How Crowd Kit went from an idea to a deployed app in ten days, and how we keep i
 | Oct 26 | Last features | "Same venue, different crowd" (`/crowds`), exit widths, time-to-get-out check and crush warning |
 | Oct 27 | Feature freeze | Bug fixes, docs and submission material only |
 | Oct 29 | Qloo sets staffing | Staffing weights computed from Qloo's age profile instead of chosen by the model, after the crowd comparison showed identical staffing for very different crowds |
+| Oct 29 | Merge open PRs | Volunteer ratios from the Purple Guide, Green Guide and NFPA 101 (Om, PR #4); Photon fallback for nearby places (PR #2); deploy hook and keep-awake (PR #6); cache warm-up script (PR #5); web search falls back to Wikipedia |
 | Oct 29–31 | Release | Final checks, redeploy, demo video, Devpost submission (deadline Oct 31, 9:15am IST) |
 
 ## 1. Planning and requirements

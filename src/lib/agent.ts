@@ -1,4 +1,4 @@
-import { ThinkingLevel, type Content, type Part } from "@google/genai";
+import { ApiError, ThinkingLevel, type Content, type Part } from "@google/genai";
 import { z } from "zod";
 import { gemini, generate, MODEL, SEARCH_MODEL, withRetry } from "./gemini";
 import { SYSTEM } from "./prompt";
@@ -74,8 +74,9 @@ async function webSearch(query: string, emit: Emit, stats?: AgentStats): Promise
       return { data: { answer: res.text ?? "", sources }, source: "web", cached: false };
     } catch (err) {
       failure = err;
-      searchDownUntil = Date.now() + SEARCH_COOLDOWN_MS;
-      emit({ type: "status", message: "Google search via Gemini is unavailable for this key; using Wikipedia instead" });
+      // A key without free Google search (404) never gets it; anything else may recover.
+      searchDownUntil = Date.now() + (err instanceof ApiError && err.status === 404 ? Infinity : SEARCH_COOLDOWN_MS);
+      console.warn("Gemini search unavailable, using Wikipedia:", err instanceof Error ? err.message : err);
     }
   }
   const wiki = await wikipediaSearch(query);

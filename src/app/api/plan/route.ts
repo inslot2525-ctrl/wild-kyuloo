@@ -70,7 +70,9 @@ export async function POST(request: Request) {
           emit(e);
         };
         const plan = mode === "baseline" ? await runBaseline(parsed.data) : await runCrowdKit(parsed.data, record);
-        await writeCached(runKey, parsed.data, { events, plan } satisfies SavedRun);
+        // Only clean runs are replayed: if a tool failed, the next request for this event tries again.
+        const failed = events.some((e) => (e.type === "tool_result" && e.status === "error") || (e.type === "status" && /failed; continuing without it/.test(e.message)));
+        if (!failed) await writeCached(runKey, parsed.data, { events, plan } satisfies SavedRun);
         emit({ type: "plan", plan, mode });
       } catch (err) {
         console.error(err);

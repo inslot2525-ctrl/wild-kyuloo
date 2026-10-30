@@ -27,6 +27,14 @@ export function gemini(): GoogleGenAI {
   return (client ??= new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }));
 }
 
+// Optional GEMINI_SEARCH_API_KEY: an older key that can still use free Google Search
+// on SEARCH_MODEL does the searches, while GEMINI_API_KEY runs the agent.
+let searchClient: GoogleGenAI | null = null;
+export function geminiSearch(): GoogleGenAI {
+  const key = process.env.GEMINI_SEARCH_API_KEY;
+  return key ? (searchClient ??= new GoogleGenAI({ apiKey: key })) : gemini();
+}
+
 type Emit = ((e: AgentEvent) => void) | null | undefined;
 
 // Busy, out of quota, timed out, or not available to this key: try another model.

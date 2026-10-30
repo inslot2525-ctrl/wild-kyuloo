@@ -45,6 +45,7 @@ npm run dev                  # http://localhost:3000
 | Variable | Required | Notes |
 |---|---|---|
 | `GEMINI_API_KEY` | yes | Gemini runs the agent loop (free tier: `gemini-3.5-flash-lite` by default, web search via `gemini-2.5-flash`). Identical events are replayed from a server-side cache, so they use no requests |
+| `GEMINI_SEARCH_API_KEY` | no | Free Google Search only works on `gemini-2.5-flash`, which newer keys can't use. Set an older key here for web search; otherwise it falls back to Wikipedia, and pauses for 15 minutes if Wikipedia rate-limits the server. |
 | `QLOO_API_KEY` | on servers | Locally, `qloo setup --qloo` is enough. With no usable credential, or without `qloo` installed, Qloo tools return clearly labelled **mock** data. |
 | `CROWDKIT_CACHE_DIR` | no | Where the response cache is written (default: the OS temp folder, `crowdkit-cache`; kept out of the project so the dev server doesn't reload). Docker image sets `/app/.cache`. |
 | `QLOO_BASE_URL`, `QLOO_TRUSTED_BASE_URL` | set in the image | Hackathon keys only work on `https://hackathon.api.qloo.com`. The Dockerfile sets both. Locally, run `qloo config set base-url https://hackathon.api.qloo.com` once. |

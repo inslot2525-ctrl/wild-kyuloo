@@ -1,6 +1,6 @@
 import { ApiError, ThinkingLevel, type Content, type Part } from "@google/genai";
 import { z } from "zod";
-import { gemini, generate, MODEL, SEARCH_MODEL, withRetry } from "./gemini";
+import { geminiSearch, generate, MODEL, SEARCH_MODEL, withRetry } from "./gemini";
 import { SYSTEM } from "./prompt";
 import { geocode, nearby, weather } from "./tools/geo";
 import { wikipediaSearch } from "./tools/wiki";
@@ -54,6 +54,11 @@ function localTool<S extends z.ZodType>(
 // After Gemini search fails, skip it for a while and go straight to Wikipedia.
 const SEARCH_COOLDOWN_MS = 10 * 60_000;
 let searchDownUntil = 0;
+// Wikipedia rate-limits some cloud servers' addresses for a while. After a 429 the
+// agent isn't offered web search for a bit, so plans don't fill with failed steps.
+const WIKI_BLOCK_MS = 15 * 60_000;
+let wikiBlockedUntil = 0;
+const webSearchUsable = () => Date.now() >= searchDownUntil || Date.now() >= wikiBlockedUntil;
 
 // Web research through a separate Gemini call with Google Search grounding,
 // falling back to Wikipedia when this key has no free search.
@@ -63,7 +68,7 @@ async function webSearch(query: string, emit: Emit, stats?: AgentStats): Promise
   if (Date.now() >= searchDownUntil) {
     try {
       const res = await withRetry(emit, (signal) =>
-        gemini().models.generateContent({
+        geminiSearch().models.generateContent({
           model: SEARCH_MODEL,
           contents: `Research this for an event planner and answer with concrete facts (numbers, names, dates). Say "unknown" for anything you cannot confirm.\n\n${query}`,
           config: { tools: [{ googleSearch: {} }], abortSignal: signal },
@@ -79,7 +84,10 @@ async function webSearch(query: string, emit: Emit, stats?: AgentStats): Promise
       console.warn("Gemini search unavailable, using Wikipedia:", err instanceof Error ? err.message : err);
     }
   }
-  const wiki = await wikipediaSearch(query);
+  const wiki = await wikipediaSearch(query).catch((err) => {
+    if (/\b429\b/.test(String(err))) wikiBlockedUntil = Date.now() + WIKI_BLOCK_MS;
+    throw err;
+  });
   if (wiki) return { data: wiki, source: "web", cached: false };
   throw failure ?? new Error("No web results for this question (Google search unavailable, nothing on Wikipedia)");
 }
@@ -272,10 +280,13 @@ export async function runCrowdKit(input: EventInput, emit: Emit, stats?: AgentSt
   });
   if (qloo.mode === "mock") emit({ type: "status", message: `Qloo mock mode: ${qloo.reason}` });
 
+  const webOk = webSearchUsable();
   const tools: AgentTool[] = [
     ...qloo.tools,
-    localTool(emit, okSources, "web_search", "Search the web for facts about the venue (capacity, entrances, house rules) or recent acts that played there. One focused question per call.",
-      z.object({ query: z.string().min(3) }), (i) => webSearch(i.query, emit, stats)),
+    ...(webOk
+      ? [localTool(emit, okSources, "web_search", "Search the web for facts about the venue (capacity, entrances, house rules) or recent acts that played there. One focused question per call.",
+          z.object({ query: z.string().min(3) }), (i) => webSearch(i.query, emit, stats))]
+      : []),
     localTool(emit, okSources, "geocode_venue", "Geocode a venue name/address with OpenStreetMap. Returns candidates with lat/lon.",
       z.object({ query: z.string() }), (i) => geocode(i.query)),
     localTool(emit, okSources, "nearby_osm", "Count and name OpenStreetMap features around a point. Groups: food, transit, parking, safety.",
@@ -368,6 +379,7 @@ export async function runCrowdKit(input: EventInput, emit: Emit, stats?: AgentSt
     input.foodStalls !== undefined && `Food stall slots: ${input.foodStalls}`,
     input.notes && `Notes from the planner: ${input.notes}`,
     qloo.mode === "mock" && `NOTE: Qloo tools are in mock mode. Label Qloo-derived items with source "mock".`,
+    !webOk && "NOTE: Web search is unavailable right now. Skip it: use the map, weather and Qloo tools, leave crowd.vsRegulars empty, and note the gap in \"limitations\".",
     "\nFirst privately list what you need next; then request every item that doesn't depend on another's result in this one response.",
   ]
     .filter(Boolean)

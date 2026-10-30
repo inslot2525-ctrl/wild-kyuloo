@@ -42,7 +42,7 @@ The organiser enters the act, venue, date, expected crowd and volunteer count. *
   - toilet ratio, first-aid distance, and queues near entrances.
 
   An **AI layout review** (optionally with a stage photo) flags crushes, blocked exits and queue clashes before the night. Share an editable copy with the team by link.
-- **Same venue, different crowd:** pick two acts for one venue. Crowd Kit plans both nights with Qloo and shows exactly what changes: who's coming, staffing by station, food, sponsors, merch, drinks and playlist. Eminem vs Phoebe Bridgers at The Fillmore is a different crowd (male-leaning vs strongly female, far fewer over-35s for Phoebe), a different merch team (Phoebe's younger crowd gets one more), and a different sponsor list (Nike, Beats, Adidas vs Polaroid, Patagonia). Every difference is computed in code from the two Qloo-backed plans.
+- **Same venue, different crowd:** pick two acts for one venue. Crowd Kit plans both nights with Qloo and shows exactly what changes: who's coming, staffing by station, food, sponsors, merch, drinks and playlist. Eminem vs Phoebe Bridgers at The Fillmore is a different crowd (male-leaning vs strongly female, far fewer over-35s for Phoebe), a different merch team (Phoebe's younger crowd gets one more), and a different sponsor list (Nike and Beats vs Fender, Dr. Martens and Polaroid). Every difference is computed in code from the two Qloo-backed plans.
 
 Every claim shows its source (Qloo, web, map, weather, formula or AI judgement), and Qloo-backed claims link to a **receipt**: the exact Qloo call that produced them. A **"with vs without Qloo"** view runs the same brief through the same model with no tools, so you can see what the taste data changes.
 
@@ -73,7 +73,7 @@ Honesty is enforced in code: a plan is rejected if it labels a vendor, sponsor o
 
 ## How we built it
 - **Next.js 16 + TypeScript**, one streaming API route that sends the agent's live trace and the final plan to the browser.
-- **Gemini (free tier) agent loop** with function calling over our tools: Qloo via MCP, OpenStreetMap (geocoding, nearby places), Open-Meteo weather, web search via Gemini with Google Search grounding, and a deterministic staffing formula. Every request has a time limit and falls back through several Gemini models when one is overloaded.
+- **Gemini (free tier) agent loop** with function calling over our tools: Qloo via MCP, OpenStreetMap (geocoding, nearby places), Open-Meteo weather, web search (Gemini with Google Search grounding, falling back to Wikipedia), and a deterministic staffing formula. Every request has a time limit and falls back through several Gemini models when one is overloaded.
 - **Zod schemas** define the plan, so the agent must return a typed, sourced plan; `submit_plan` validates it and sends errors back for the agent to fix.
 - **Leaflet** site map on OpenStreetMap tiles; layouts save in the browser and share by link, no database needed.
 - **Code computes, the model explains:** staffing, safety checks and promo hot spots are calculated; the model writes the words.
@@ -83,6 +83,7 @@ Honesty is enforced in code: a plan is rejected if it labels a vendor, sponsor o
 - **Hackathon keys and the harness:** the harness defaults to Qloo's production server, which rejects hackathon keys; we point it at the hackathon server.
 - **Ambiguity everywhere:** acts that are both an "artist" and a "person", category words with several tags, neighbourhoods resolving to the wrong country. We learned to pass exact IDs.
 - **Free-tier reliability:** Gemini models hang or hit quotas; we added time limits, a model fallback chain and cooldowns, and the UI says what's happening.
+- **Free web search from a shared server:** free Google Search only works on older Gemini keys, and Wikipedia rate-limits cloud servers. Searches now go one at a time, look up the venue name first, and step aside for a while when blocked, so plans never fill with failed steps; only clean runs are saved for replay.
 - **Keeping sources honest:** a weaker model labelled invented vendors as Qloo-backed, so we added the source check in code and receipts.
 - **Fair comparison:** the "without Qloo" baseline gets the same brief and quality bar, so the difference comes from the data, not a weaker prompt.
 
@@ -102,7 +103,7 @@ Taste data is most useful when it decides things that cost money (which vendors,
 ## Known limitations
 - Qloo describes **aggregate audience affinities**, not individual attendees; plans say "fans over-index on X", never "attendees will buy X".
 - Safety checks and staffing follow published guidance where it exists and rules of thumb elsewhere; they support, never replace, a professional safety plan.
-- Runs on Gemini's free tier, so a new plan can take 2–3 minutes and Google may use free-tier requests to improve its products; don't enter private data.
+- Runs on Gemini's free tier, so a new plan usually takes 1–2 minutes and Google may use free-tier requests to improve its products; don't enter private data.
 - Qloo coverage varies by act and city; comedy and smaller acts return less.
 
 ---

@@ -8,6 +8,11 @@ name: Deploy to Render
 on:
   push:
     branches: [main]
+    # Every deploy restarts the free instance and wipes the saved demo plans,
+    # so pushes that only change docs, images or markdown don't deploy.
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
   workflow_dispatch:
 
 jobs:
